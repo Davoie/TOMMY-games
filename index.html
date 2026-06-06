@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐟 TOMMY 游戏厅</title>
+  <link rel="stylesheet" href="shared/hub.css">
+</head>
+<body>
+  <div class="bubbles" id="bubbles"></div>
+
+  <div class="container">
+    <!-- 头部 -->
+    <header class="header">
+      <div class="logo">
+        <canvas id="logoFish" width="80" height="80"></canvas>
+        <h1>TOMMY 游戏厅</h1>
+      </div>
+      <p class="subtitle">选择一个游戏，开始快乐吧！</p>
+    </header>
+
+    <!-- 游戏网格 -->
+    <main class="game-grid">
+
+      <!-- 01 - 绿头鱼跳跳 -->
+      <a href="games/01-green-fish-jump/index.html" class="game-card completed">
+        <div class="card-badge badge-new">NEW</div>
+        <div class="card-icon">
+          <canvas id="cardFish01" width="100" height="100"></canvas>
+        </div>
+        <div class="card-info">
+          <span class="card-number">#01</span>
+          <h3 class="card-title">绿头鱼跳跳</h3>
+          <p class="card-desc">绿头鱼海底冒险！躲避珊瑚和贝壳，看看你能跑多远！</p>
+          <div class="card-tags">
+            <span class="tag tag-control">空格键 / 点击</span>
+            <span class="tag tag-difficulty">⭐ 简单</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- 02 - 赛车游戏 -->
+      <div class="game-card locked">
+        <div class="card-badge badge-soon">即将推出</div>
+        <div class="card-icon">
+          <span class="icon-placeholder">🏎️</span>
+        </div>
+        <div class="card-info">
+          <span class="card-number">#02</span>
+          <h3 class="card-title">极速赛车</h3>
+          <p class="card-desc">在高速公路上躲避车流，左右变道，挑战极速！</p>
+          <div class="card-tags">
+            <span class="tag tag-control">← → 方向键</span>
+            <span class="tag tag-difficulty">⭐⭐ 中等</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 03 - 雷电飞机 -->
+      <div class="game-card locked">
+        <div class="card-badge badge-soon">即将推出</div>
+        <div class="card-icon">
+          <span class="icon-placeholder">✈️</span>
+        </div>
+        <div class="card-info">
+          <span class="card-number">#03</span>
+          <h3 class="card-title">雷电射击</h3>
+          <p class="card-desc">驾驶战机击落敌机！左右移动、空格发射，消灭一切敌人！</p>
+          <div class="card-tags">
+            <span class="tag tag-control">← → + 空格</span>
+            <span class="tag tag-difficulty">⭐⭐⭐ 困难</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 04 - 贪吃蛇 -->
+      <div class="game-card locked">
+        <div class="card-badge badge-soon">即将推出</div>
+        <div class="card-icon">
+          <span class="icon-placeholder">🐍</span>
+        </div>
+        <div class="card-info">
+          <span class="card-number">#04</span>
+          <h3 class="card-title">贪吃蛇</h3>
+          <p class="card-desc">经典贪吃蛇玩法！吃食物长身体，别撞到自己哦！</p>
+          <div class="card-tags">
+            <span class="tag tag-control">↑ ↓ ← →</span>
+            <span class="tag tag-difficulty">⭐ 简单</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 05 - 超级玛丽类 -->
+      <div class="game-card locked">
+        <div class="card-badge badge-soon">即将推出</div>
+        <div class="card-icon">
+          <span class="icon-placeholder">🍄</span>
+        </div>
+        <div class="card-info">
+          <span class="card-number">#05</span>
+          <h3 class="card-title">超级冒险</h3>
+          <p class="card-desc">横版跳跃冒险！多按键操作，闯关挑战，重温经典！</p>
+          <div class="card-tags">
+            <span class="tag tag-control">多按键</span>
+            <span class="tag tag-difficulty">⭐⭐⭐⭐ 挑战</span>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+      <p>🐟 TOMMY 游戏厅 © 2026 — 纯手工打造，快乐至上！</p>
+    </footer>
+  </div>
+
+  <script>
+    // ===== 绘制导航栏小绿头鱼 Logo =====
+    (function() {
+      const canvas = document.getElementById('logoFish');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const s = 80;
+
+      // 清空
+      ctx.clearRect(0, 0, s, s);
+
+      const cx = s / 2, cy = s / 2;
+
+      // 鱼身 (鲜绿色椭圆)
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 2, 22, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 鱼身亮部
+      ctx.fillStyle = '#86efac';
+      ctx.beginPath();
+      ctx.ellipse(cx - 2, cy - 2, 15, 10, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 鱼尾
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.moveTo(cx + 20, cy + 2);
+      ctx.lineTo(cx + 35, cy - 8);
+      ctx.lineTo(cx + 35, cy + 12);
+      ctx.closePath();
+      ctx.fill();
+
+      // 鱼鳍 (上)
+      ctx.fillStyle = '#16a34a';
+      ctx.beginPath();
+      ctx.moveTo(cx - 5, cy - 14);
+      ctx.lineTo(cx + 2, cy - 22);
+      ctx.lineTo(cx + 8, cy - 12);
+      ctx.closePath();
+      ctx.fill();
+
+      // 鱼鳍 (下)
+      ctx.beginPath();
+      ctx.moveTo(cx - 5, cy + 16);
+      ctx.lineTo(cx + 2, cy + 24);
+      ctx.lineTo(cx + 8, cy + 14);
+      ctx.closePath();
+      ctx.fill();
+
+      // 眼睛 (白)
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(cx - 4, cy - 2, 9, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 瞳孔
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.arc(cx - 2, cy - 2, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 高光
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(cx - 4, cy - 4, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 嘴巴 (O型)
+      ctx.fillStyle = '#f43f5e';
+      ctx.beginPath();
+      ctx.arc(cx - 14, cy + 4, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#9f1239';
+      ctx.beginPath();
+      ctx.arc(cx - 14, cy + 4, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    })();
+
+    // ===== 绘制卡片中的小绿头鱼 =====
+    (function() {
+      const canvas = document.getElementById('cardFish01');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const s = 100;
+
+      ctx.clearRect(0, 0, s, s);
+
+      const cx = s / 2, cy = s / 2;
+
+      // 鱼身
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 4, 28, 20, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 鱼身亮部
+      ctx.fillStyle = '#86efac';
+      ctx.beginPath();
+      ctx.ellipse(cx - 3, cy - 3, 18, 13, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 鱼尾
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.moveTo(cx + 26, cy + 4);
+      ctx.lineTo(cx + 44, cy - 10);
+      ctx.lineTo(cx + 44, cy + 18);
+      ctx.closePath();
+      ctx.fill();
+
+      // 鱼鳍上
+      ctx.fillStyle = '#16a34a';
+      ctx.beginPath();
+      ctx.moveTo(cx - 8, cy - 18);
+      ctx.lineTo(cx + 2, cy - 28);
+      ctx.lineTo(cx + 10, cy - 16);
+      ctx.closePath();
+      ctx.fill();
+
+      // 鱼鳍下
+      ctx.beginPath();
+      ctx.moveTo(cx - 8, cy + 22);
+      ctx.lineTo(cx + 2, cy + 32);
+      ctx.lineTo(cx + 10, cy + 20);
+      ctx.closePath();
+      ctx.fill();
+
+      // 眼睛 (白)
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(cx - 6, cy - 4, 11, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 瞳孔
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.arc(cx - 3, cy - 4, 5.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 高光
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(cx - 5, cy - 7, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 嘴巴
+      ctx.fillStyle = '#f43f5e';
+      ctx.beginPath();
+      ctx.arc(cx - 20, cy + 6, 5.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#9f1239';
+      ctx.beginPath();
+      ctx.arc(cx - 20, cy + 6, 3, 0, Math.PI * 2);
+      ctx.fill();
+    })();
+
+    // ===== 背景泡泡动画 =====
+    (function() {
+      const container = document.getElementById('bubbles');
+      for (let i = 0; i < 15; i++) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        const size = Math.random() * 30 + 10;
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+        bubble.style.left = Math.random() * 100 + '%';
+        bubble.style.animationDelay = Math.random() * 8 + 's';
+        bubble.style.animationDuration = Math.random() * 6 + 4 + 's';
+        container.appendChild(bubble);
+      }
+    })();
+  </script>
+</body>
+</html>

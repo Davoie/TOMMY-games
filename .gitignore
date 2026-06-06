@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editor
+.vscode/
+.idea/
+
+# Claude
+.claude/
+
+# Thumbnails
+Thumbs.db
+
+# Temp files
+*.tmp
+*.swp
+*.swo
+*~
