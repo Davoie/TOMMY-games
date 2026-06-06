@@ -2,19 +2,29 @@
 .DS_Store
 .AppleDouble
 .LSOverride
+Icon
 ._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
 
-# Editor
+# Thumbs.db
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# VSCode
 .vscode/
-.idea/
+*.code-workspace
 
 # Claude
 .claude/
 
-# Thumbnails
-Thumbs.db
-
-# Temp files
+# Temporary files
 *.tmp
 *.swp
 *.swo

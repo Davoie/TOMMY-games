@@ -38,6 +38,220 @@ const SoundEngine = (() => {
     hit: () => { tone(120, 'sawtooth', 0.25, 0.15); tone(80, 'triangle', 0.3, 0.12); },
     score: () => { tone(900, 'sine', 0.08, 0.05); tone(1200, 'sine', 0.06, 0.03); },
     init: () => ensure(),
+    getCtx: () => ensure(),
+  };
+})();
+
+// ============================================================
+// 背景音乐引擎 (BGM Engine)
+// ============================================================
+const BGM = (() => {
+  const BPM = 128;
+  const beatDur = 60 / BPM;        // 一拍时长 (秒)
+  const loopBeats = 16;            // 16 拍一个循环
+  const loopDur = beatDur * loopBeats;  // ~7.5s
+
+  let masterGain = null;
+  let running = false;
+  let timerId = null;
+  let nextLoopStart = 0;
+  let activeNodes = [];
+
+  // 音符频率表 (C2 ~ C6)
+  const N = {
+    C2: 65,  D2: 73,  E2: 82,  F2: 87,  G2: 98,  A2: 110, B2: 123,
+    C3: 131, D3: 147, E3: 165, F3: 175, G3: 196, A3: 220, B3: 247,
+    C4: 262, D4: 294, E4: 330, F4: 349, G4: 392, A4: 440, B4: 494,
+    C5: 523, D5: 587, E5: 659, F5: 698, G5: 784, A5: 880, B5: 988,
+    C6: 1047,
+  };
+
+  function playNote(freq, type, startTime, dur, vol = 0.06) {
+    if (!freq || freq <= 0) return; // 跳过无效音符
+    try {
+      const ctx = SoundEngine.getCtx();
+      if (!masterGain || !ctx) return;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(vol, startTime + 0.01);
+      gain.gain.setValueAtTime(vol, startTime + dur * 0.7);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
+      osc.connect(gain).connect(masterGain);
+      osc.start(startTime);
+      osc.stop(startTime + dur + 0.05);
+
+      activeNodes.push(osc, gain);
+    } catch (_) {
+      // 忽略音频播放错误
+    }
+  }
+
+  function playRest(startTime, dur) {
+    // 休止符不播放但清掉之前的残留节点
+  }
+
+  // 清理旧节点（防止泄漏）
+  function gcNodes(byTime) {
+    activeNodes = activeNodes.filter(n => {
+      try {
+        if (n.context && n.context.currentTime < byTime - 0.1) return false;
+        return true;
+      } catch (_) { return false; }
+    });
+  }
+
+  // ==========================================
+  // 旋律编排 (海底 8-bit 风格)
+  // ==========================================
+  function scheduleLoop(startTime) {
+    const t = (beat) => startTime + beat * beatDur;
+    const vol = 0.055;   // 旋律音量
+    const bVol = 0.04;   // 低音音量
+    const aVol = 0.045;  // 琶音音量
+
+    // ---- 主旋律 (C 大调五声音阶) ----
+    const melody = [
+      // 第 1-4 拍
+      { b: 0,   n: N.C5,  d: 0.25, t: 'square' },
+      { b: 0.5, n: N.E5,  d: 0.25, t: 'square' },
+      { b: 1,   n: N.G5,  d: 0.5,  t: 'square' },
+      { b: 1.5, n: N.A5,  d: 0.25, t: 'square' },
+      { b: 2,   n: N.G5,  d: 0.25, t: 'square' },
+      { b: 2.5, n: N.E5,  d: 0.5,  t: 'square' },
+      { b: 3,   n: N.D5,  d: 0.25, t: 'triangle' },
+      { b: 3.5, n: N.C5,  d: 0.5,  t: 'triangle' },
+
+      // 第 5-8 拍
+      { b: 4,   n: N.D5,  d: 0.25, t: 'square' },
+      { b: 4.5, n: N.E5,  d: 0.25, t: 'square' },
+      { b: 5,   n: N.C5,  d: 0.5,  t: 'square' },
+      { b: 5.5, n: N.A4,  d: 0.25, t: 'triangle' },
+      { b: 6,   n: N.C5,  d: 0.25, t: 'square' },
+      { b: 6.5, n: N.D5,  d: 0.5,  t: 'square' },
+      { b: 7,   n: N.E5,  d: 0.25, t: 'triangle' },
+      { b: 7.5, n: N.G5,  d: 0.5,  t: 'square' },
+
+      // 第 9-12 拍 (高潮)
+      { b: 8,   n: N.G5,  d: 0.25, t: 'square' },
+      { b: 8.5, n: N.A5,  d: 0.25, t: 'square' },
+      { b: 9,   n: N.G5,  d: 0.25, t: 'square' },
+      { b: 9.5, n: N.E5,  d: 0.5,  t: 'square' },
+      { b: 10,  n: N.C5,  d: 0.25, t: 'triangle' },
+      { b: 10.5,n: N.D5,  d: 0.25, t: 'triangle' },
+      { b: 11,  n: N.E5,  d: 0.5,  t: 'square' },
+      { b: 11.5,n: N.C5,  d: 0.25, t: 'triangle' },
+
+      // 第 13-16 拍 (回落)
+      { b: 12,  n: N.A4,  d: 0.25, t: 'triangle' },
+      { b: 12.5,n: N.C5,  d: 0.25, t: 'square' },
+      { b: 13,  n: N.E5,  d: 0.5,  t: 'square' },
+      { b: 13.5,n: N.D5,  d: 0.25, t: 'triangle' },
+      { b: 14,  n: N.C5,  d: 0.25, t: 'square' },
+      { b: 14.5,n: N.A4,  d: 0.5,  t: 'triangle' },
+      { b: 15,  n: N.G4,  d: 0.25, t: 'triangle' },
+      { b: 15.5,n: N.C5,  d: 0.5,  t: 'square' },
+    ];
+
+    // ---- 低音线 ----
+    const bass = [];
+    const bassNotes = [N.C3, N.C3, N.G2, N.G2, N.A2, N.A2, N.F2, N.F2,
+                       N.C3, N.C3, N.E3, N.E3, N.F2, N.F2, N.G2, N.G2];
+    for (let i = 0; i < 16; i++) {
+      bass.push({ b: i, n: bassNotes[i], d: 0.9, t: 'triangle' });
+    }
+
+    // ---- 琶音装饰 ----
+    const arps = [];
+    for (let bar = 0; bar < 4; bar++) {
+      const base = bar * 4;
+      const chord = bar === 0 ? [N.C4, N.E4, N.G4, N.C5]
+                   : bar === 1 ? [N.D4, N.F4, N.A4, N.D5]
+                   : bar === 2 ? [N.C4, N.E4, N.G4, N.C5]
+                   : [N.G3, N.C4, N.E4, N.G4];
+      for (let i = 0; i < 8; i++) {
+        arps.push({
+          b: base + i * 0.5,
+          n: chord[i % 4],
+          d: 0.2,
+          t: 'sine',
+        });
+      }
+    }
+
+    // ---- 执行调度 ----
+    for (const m of melody) {
+      playNote(m.n, m.t, t(m.b), m.d, vol);
+    }
+    for (const b of bass) {
+      playNote(b.n, b.t, t(b.b), b.d, bVol);
+    }
+    for (const a of arps) {
+      playNote(a.n, a.t, t(a.b), a.d, aVol);
+    }
+
+    // 清理旧节点
+    gcNodes(startTime);
+  }
+
+  // ---- 调度循环 ----
+  function schedulerLoop() {
+    if (!running) return;
+
+    const now = SoundEngine.getCtx().currentTime;
+    // 提前调度下一个循环
+    while (nextLoopStart < now + 0.3) {
+      scheduleLoop(nextLoopStart);
+      nextLoopStart += loopDur;
+    }
+
+    timerId = setTimeout(schedulerLoop, loopDur * 500); // 每半循环检查一次
+  }
+
+  // ---- 公开 API ----
+  return {
+    start() {
+      if (running) return;
+      SoundEngine.init();
+      if (!masterGain) {
+        const ctx = SoundEngine.getCtx();
+        masterGain = ctx.createGain();
+        masterGain.gain.value = 0.65;
+        masterGain.connect(ctx.destination);
+      } else {
+        // 恢复音量（stop 时被淡出到 0 了）
+        masterGain.gain.cancelScheduledValues(SoundEngine.getCtx().currentTime);
+        masterGain.gain.setValueAtTime(masterGain.gain.value, SoundEngine.getCtx().currentTime);
+        masterGain.gain.linearRampToValueAtTime(0.65, SoundEngine.getCtx().currentTime + 0.15);
+      }
+      running = true;
+      activeNodes = [];
+      try {
+        nextLoopStart = SoundEngine.getCtx().currentTime + 0.05;
+        schedulerLoop();
+      } catch (e) {
+        // BGM 调度失败不影响游戏
+        console.warn('BGM调度失败:', e);
+      }
+    },
+
+    stop() {
+      running = false;
+      if (timerId) {
+        clearTimeout(timerId);
+        timerId = null;
+      }
+      // 淡出
+      if (masterGain) {
+        const ctx = SoundEngine.getCtx();
+        masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+      }
+    },
+
+    isRunning: () => running,
   };
 })();
 
@@ -159,12 +373,14 @@ class Game {
     this.groundOffset = 0;
     document.getElementById('overlayStart').classList.add('hidden');
     document.getElementById('overlayEnd').classList.add('hidden');
+    BGM.start();
     this._loop();
   }
 
   // ---- 游戏结束 ----
   end() {
     this.gameOver = true;
+    BGM.stop();
     SoundEngine.hit();
 
     // 更新最高分
@@ -179,7 +395,7 @@ class Game {
     document.getElementById('finalHigh').textContent = String(this.highScore);
 
     const newRecordEl = document.getElementById('newRecord');
-    if (this.score >= this.highScore && this.score > 0) {
+    if (this.score > this.highScore && this.score > 0) {
       newRecordEl.classList.remove('hidden');
     } else {
       newRecordEl.classList.add('hidden');
@@ -546,8 +762,11 @@ class Game {
     ctx.save();
     ctx.translate(cx, cy);
 
-    // 跳跃时的倾斜
-    const tilt = f.isJumping ? f.vy * 0.03 : 0;
+    // 水平翻转 — 绿头鱼面向右边（前进方向）
+    ctx.scale(-1, 1);
+
+    // 跳跃时的倾斜（翻转后取反）
+    const tilt = f.isJumping ? -f.vy * 0.03 : 0;
     ctx.rotate(tilt);
 
     // 压扁效果（落地时）

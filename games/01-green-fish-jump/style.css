@@ -198,6 +198,28 @@ html, body {
   transform: translateY(0) scale(0.97);
 }
 
+.btn-hub {
+  display: inline-block;
+  margin-top: 0.6rem;
+  padding: 10px 36px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.25s;
+  font-family: inherit;
+}
+
+.btn-hub:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
 /* ========== End Score ========== */
 .end-score {
   margin: 1rem 0;
