@@ -32,6 +32,7 @@ class Game {
     this.speed=0;this.maxSpeed=120;this.accel=2.5;this.brakeForce=6;this.friction=0.4;this.displaySpeed=0;
     this.player={x:0,steer:0,yaw:0,skid:false,skidT:0};
     this.steerSpeed=0.06;this.steerReturn=0.08;this.yawReturn=0.12;this.skidThresh=80;
+    this.laneShiftMul=0.8;  // 转向时路面偏移倍数（大幅增强）
     this.invincible=0;this.lives=3;
     this.curve=0;this.targetCurve=0;this.curveTimer=0;
     this.obstacles=[];this.spawnTimer=0;this.spawnInterval=120;this.FAR_D=2000;this.NEAR_D=12;
@@ -44,10 +45,17 @@ class Game {
   _bs(){const n=300;for(let i=0;i<=n;i++){const sy=this.HORIZON_Y+i*(this.H-this.HORIZON_Y)/n;const d=sy>this.HORIZON_Y?(this.H-this.HORIZON_Y)*this.FOCUS/(sy-this.HORIZON_Y)-this.FOCUS:999999;const sc=this.FOCUS/(d+this.FOCUS);this.strips.push({sy,d,sc});}this.FAR_D=this.strips[Math.floor(n*0.03)].d;}
   _proj(d){if(d<=0)return{sy:this.H,sc:1.2};const sc=this.FOCUS/(d+this.FOCUS);return{sy:this.HORIZON_Y+(this.H-this.HORIZON_Y)*sc,sc:Math.min(sc,1.25)};}
 
-  // 弯道 + 玩家横向偏移 → 路面中心偏移。让玩家清楚看到自己在路上的位置！
+  // 路面中心偏移 — 屏幕像素
   _roadX(d){
-    const laneShift=this.player.x*0.35*d*1.5; // 大大增强
-    return this.curve*d*d*0.00035-laneShift;
+    const pan=this.player.x*0.25*this.W;
+    const curve=this.curve*d*d*0.00035;
+    return pan+curve;
+  }
+
+  // 路面中心偏移 — 世界坐标 (障碍物/装饰用)
+  _worldRoadX(d){
+    const shift=this.player.x*d*0.25;
+    return this.curve*d*d*0.00035-shift;
   }
 
   _is(){for(let l=0;l<3;l++)for(let i=0;i<40;i++)this.stars.push({x:Math.random()*this.W,y:Math.random()*this.HORIZON_Y,r:Math.random()*(l===0?1.2:l===1?1.8:2.5),tw:Math.random()*Math.PI*2,sp:0.2+l*0.3,ly:l,op:0.4+l*0.3});}
@@ -69,7 +77,12 @@ class Game {
 
   _uObst(){this.spawnTimer++;if(this.spawnTimer>=this.spawnInterval){this.spawnTimer=0;this._spawn();}const ws=this.speed*0.08;for(let i=this.obstacles.length-1;i>=0;i--){const o=this.obstacles[i];o.d-=ws;if(!o.scored&&o.d<0){o.scored=true;this.score+=10;}if(o.d<-30)this.obstacles.splice(i,1);}if(this.invincible>0)return;for(const o of this.obstacles){if(this._col(o)){this._hit();break;}}}
   _spawn(){const types=this.score<200?['car']:this.score<400?['car','truck']:['car','truck','racer'];const type=types[Math.floor(Math.random()*types.length)];const d=this.FAR_D+Math.random()*400;let lat=(Math.random()-0.5)*1.3;for(const o of this.obstacles){if(Math.abs(o.d-d)<250&&Math.abs(o.lat-lat)<0.2)lat=(Math.random()-0.5)*1.3;}this.obstacles.push({type,lat,d,scored:false,sp:type==='truck'?0.3:type==='racer'?2+Math.random()*2:Math.random()*1.5});}
-  _col(o){if(o.d<this.NEAR_D||o.d>70)return false;const pj=this._proj(o.d);const rx=this._roadX(o.d);const rw=this.ROAD_W*pj.sc*this.W;const ox=this.W/2+rx+o.lat*rw*0.78;const ow=(o.type==='truck'?38:o.type==='racer'?20:27)*pj.sc*1.1;const oh=(o.type==='truck'?58:o.type==='racer'?30:42)*pj.sc*1.1;const pw=36,ph=60;const px=this.W/2-pw/2;const py=this.H-ph+15;const pad=4;return px+pad<ox+ow/2-pad&&px+pw-pad>ox-ow/2+pad&&py+pad<pj.sy+oh/2-pad&&py+ph-pad>pj.sy-oh/2+pad;}
+  _col(o){if(o.d<this.NEAR_D||o.d>70)return false;const pj=this._proj(o.d);
+    const rx=this._worldRoadX(o.d);
+    const rw=this.ROAD_W*pj.sc*this.W;const ox=this.W/2+rx+o.lat*rw*0.78;
+    const ow=(o.type==='truck'?38:o.type==='racer'?20:27)*pj.sc*1.1;const oh=(o.type==='truck'?58:o.type==='racer'?30:42)*pj.sc*1.1;
+    const pw=36,ph=60;const px=this.W/2-pw/2;const py=this.H-ph+15;const pad=4;
+    return px+pad<ox+ow/2-pad&&px+pw-pad>ox-ow/2+pad&&py+pad<pj.sy+oh/2-pad&&py+ph-pad>pj.sy-oh/2+pad;}
   _hit(){if(this.invincible>0)return;this.lives--;this.invincible=90;for(let i=0;i<30;i++)this.particles.push({x:this.W/2,y:this.H-100,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8-4,life:30+Math.random()*20,color:['#ff00ff','#ff4488','#ffaa00','#fff'][Math.floor(Math.random()*4)]});if(this.lives<=0)this.end();else SE.crash();}
 
   _uPart(){const p=this.player;if(this.speed>150&&this.frame%2===0){this.particles.push({x:this.W/2+(Math.random()-0.5)*200,y:this.H-80,vx:(Math.random()-0.5)*2,vy:-Math.random()*6-this.speed*0.02,life:15+Math.random()*10,color:p.skid?'#ff4488':['#ff00ff','#00ffff'][Math.floor(Math.random()*2)]});}if(this.frame%3===0){this.smoke.push({x:this.W/2+(Math.random()-0.5)*40,y:this.H-20,vx:(Math.random()-0.5)*0.5,vy:-Math.random()-0.5,life:10+Math.random()*10,r:2+Math.random()*3});}if(p.skid&&this.frame%2===0){for(let i=0;i<2;i++)this.smoke.push({x:this.W/2+(Math.random()-0.5)*100,y:this.H-30,vx:(Math.random()-0.5)*3,vy:-Math.random()*2-1,life:15+Math.random()*15,r:4+Math.random()*5});}for(const arr of[this.particles,this.smoke]){for(let i=arr.length-1;i>=0;i--){const pp=arr[i];pp.x+=pp.vx;pp.y+=pp.vy;pp.life--;if(pp.life<=0)arr.splice(i,1);}}}
@@ -127,13 +140,13 @@ class Game {
 
   _dDecor(ctx){
     const W=this.W;
-    for(const lp of this.lampposts){if(lp.d<=0||lp.d>this.FAR_D+400)continue;const pj=this._proj(lp.d);if(pj.sy<this.HORIZON_Y||pj.sy>this.H)continue;const rx=this._roadX(lp.d);const rw=this.ROAD_W*pj.sc*W;const lx=W/2+rx+lp.side*rw*1.15;ctx.fillStyle='#334';ctx.fillRect(lx-2*pj.sc,pj.sy-65*pj.sc,3.5*pj.sc,65*pj.sc);ctx.fillStyle='#ffddaa';ctx.shadowColor='rgba(255,200,100,0.5)';ctx.shadowBlur=14*pj.sc;ctx.beginPath();ctx.arc(lx,pj.sy-65*pj.sc,6*pj.sc,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
-    for(const bb of this.billboards){if(bb.d<=0||bb.d>this.FAR_D+400)continue;const pj=this._proj(bb.d);if(pj.sy<this.HORIZON_Y||pj.sy>this.H)continue;const rx=this._roadX(bb.d);const rw=this.ROAD_W*pj.sc*W;const bx=W/2+rx+bb.side*rw*1.12;const bh=22*pj.sc,bw=50*pj.sc;ctx.fillStyle='#1a1a30';ctx.fillRect(bx-bw/2,pj.sy-bh,bw,bh);ctx.fillStyle=['#ff00ff','#00ffff','#ffaa00'][Math.floor(Math.random()*3)];ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=7*pj.sc;ctx.fillRect(bx-bw*0.35,pj.sy-bh*0.6,bw*0.7,bh*0.3);ctx.shadowBlur=0;}
+    for(const lp of this.lampposts){if(lp.d<=0||lp.d>this.FAR_D+400)continue;const pj=this._proj(lp.d);if(pj.sy<this.HORIZON_Y||pj.sy>this.H)continue;const rx=this._worldRoadX(lp.d);const rw=this.ROAD_W*pj.sc*W;const lx=W/2+rx+lp.side*rw*1.15;ctx.fillStyle='#334';ctx.fillRect(lx-2*pj.sc,pj.sy-65*pj.sc,3.5*pj.sc,65*pj.sc);ctx.fillStyle='#ffddaa';ctx.shadowColor='rgba(255,200,100,0.5)';ctx.shadowBlur=14*pj.sc;ctx.beginPath();ctx.arc(lx,pj.sy-65*pj.sc,6*pj.sc,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+    for(const bb of this.billboards){if(bb.d<=0||bb.d>this.FAR_D+400)continue;const pj=this._proj(bb.d);if(pj.sy<this.HORIZON_Y||pj.sy>this.H)continue;const rx=this._worldRoadX(bb.d);const rw=this.ROAD_W*pj.sc*W;const bx=W/2+rx+bb.side*rw*1.12;const bh=22*pj.sc,bw=50*pj.sc;ctx.fillStyle='#1a1a30';ctx.fillRect(bx-bw/2,pj.sy-bh,bw,bh);ctx.fillStyle=['#ff00ff','#00ffff','#ffaa00'][Math.floor(Math.random()*3)];ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=7*pj.sc;ctx.fillRect(bx-bw*0.35,pj.sy-bh*0.6,bw*0.7,bh*0.3);ctx.shadowBlur=0;}
   }
 
   _dObst(ctx){
     const W=this.W;const sorted=[...this.obstacles].sort((a,b)=>b.d-a.d);
-    for(const o of sorted){if(o.d<=0||o.d>this.FAR_D+400)continue;const pj=this._proj(o.d);if(pj.sy<this.HORIZON_Y||pj.sy>this.H+20)continue;const rx=this._roadX(o.d);const rw=this.ROAD_W*pj.sc*W;const ox=W/2+rx+o.lat*rw*0.78;const bw=(o.type==='truck'?38:o.type==='racer'?20:27)*pj.sc*1.1;const bh=(o.type==='truck'?58:o.type==='racer'?30:42)*pj.sc*1.1;ctx.fillStyle=o.type==='truck'?'#ff9933':o.type==='racer'?'#ff2244':'#ff6644';ctx.fillRect(ox-bw/2,pj.sy-bh,bw,bh);ctx.fillStyle='rgba(20,20,40,0.6)';ctx.fillRect(ox-bw*0.28,pj.sy-bh*0.95,bw*0.56,bh*0.32);ctx.fillStyle='#ffff88';ctx.shadowColor='#ffff88';ctx.shadowBlur=3*pj.sc;ctx.fillRect(ox-bw*0.32,pj.sy-bh-2*pj.sc,bw*0.15,3*pj.sc);ctx.fillRect(ox+bw*0.18,pj.sy-bh-2*pj.sc,bw*0.15,3*pj.sc);ctx.shadowBlur=0;if(o.type==='racer'){ctx.fillStyle='#f00';ctx.beginPath();ctx.moveTo(ox,pj.sy-bh-5*pj.sc);ctx.lineTo(ox-5*pj.sc,pj.sy-bh-13*pj.sc);ctx.lineTo(ox+5*pj.sc,pj.sy-bh-13*pj.sc);ctx.closePath();ctx.fill();}}
+    for(const o of sorted){if(o.d<=0||o.d>this.FAR_D+400)continue;const pj=this._proj(o.d);if(pj.sy<this.HORIZON_Y||pj.sy>this.H+20)continue;const rx=this._worldRoadX(o.d);const rw=this.ROAD_W*pj.sc*W;const ox=W/2+rx+o.lat*rw*0.78;const bw=(o.type==='truck'?38:o.type==='racer'?20:27)*pj.sc*1.1;const bh=(o.type==='truck'?58:o.type==='racer'?30:42)*pj.sc*1.1;ctx.fillStyle=o.type==='truck'?'#ff9933':o.type==='racer'?'#ff2244':'#ff6644';ctx.fillRect(ox-bw/2,pj.sy-bh,bw,bh);ctx.fillStyle='rgba(20,20,40,0.6)';ctx.fillRect(ox-bw*0.28,pj.sy-bh*0.95,bw*0.56,bh*0.32);ctx.fillStyle='#ffff88';ctx.shadowColor='#ffff88';ctx.shadowBlur=3*pj.sc;ctx.fillRect(ox-bw*0.32,pj.sy-bh-2*pj.sc,bw*0.15,3*pj.sc);ctx.fillRect(ox+bw*0.18,pj.sy-bh-2*pj.sc,bw*0.15,3*pj.sc);ctx.shadowBlur=0;if(o.type==='racer'){ctx.fillStyle='#f00';ctx.beginPath();ctx.moveTo(ox,pj.sy-bh-5*pj.sc);ctx.lineTo(ox-5*pj.sc,pj.sy-bh-13*pj.sc);ctx.lineTo(ox+5*pj.sc,pj.sy-bh-13*pj.sc);ctx.closePath();ctx.fill();}}
   }
 
   // ===== 内饰: 精简座舱,方向盘大+清晰转动 =====
@@ -278,21 +291,24 @@ class Game {
     // 高速速度线
     if(this.speed>180){ctx.strokeStyle='rgba(255,255,255,0.1)';for(let i=0;i<5;i++){ctx.lineWidth=1+Math.random();ctx.beginPath();const lx=W*0.2+Math.random()*W*0.6;ctx.moveTo(lx,this.HORIZON_Y);ctx.lineTo(lx+(Math.random()-0.5)*25,this.HORIZON_Y+Math.random()*40);ctx.stroke();}}
 
-    // 转向位置指示器 (底部中央) — 清楚显示车在路上哪个位置
+    // 转向位置指示器 — 底部中央，清楚显示车在路上哪个位置
     const indW=140,indH=6,indX=W/2-indW/2,indY=H-16;
-    ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(indX-10,indY-4,indW+20,indH+12);
-    // 路面条
-    ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(indX,indY,indW,indH);
+    ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(indX-10,indY-6,indW+20,indH+14);
+    ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(indX,indY,indW,indH);
     // 车道线
-    ctx.fillStyle='rgba(255,255,255,0.4)';ctx.fillRect(indX+indW*0.5-1,indY-2,2,indH+4);
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.fillRect(indX+indW*0.5-1,indY-2,2,indH+4);
+    ctx.fillStyle='rgba(255,255,255,0.15)';
     ctx.fillRect(indX+indW*0.25-0.5,indY,1,indH);
     ctx.fillRect(indX+indW*0.75-0.5,indY,1,indH);
-    // 车位置 (反向: -x → 右边偏)
-    const carPosX=indX+indW/2-p.x*indW*0.48;
-    ctx.fillStyle='#00ffff';ctx.shadowColor='#00ffff';ctx.shadowBlur=8;
+    // 车车位置: p.x 负=左边, 正=右边
+    const carPosX=indX+indW/2 + p.x*indW*0.45;
+    ctx.fillStyle='#00ffff';ctx.shadowColor='#00ffff';ctx.shadowBlur=10;
     ctx.fillRect(carPosX-5,indY-3,10,indH+6);
     ctx.fillStyle=p.skid?'#ff4488':'#ffffff';ctx.fillRect(carPosX-1.5,indY-2,3,indH+4);
     ctx.shadowBlur=0;
+    // 标签
+    ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='7px sans-serif';ctx.textAlign='center';
+    ctx.fillText('← 车道位置 →',W/2,indY-8);
   }
 }
 
