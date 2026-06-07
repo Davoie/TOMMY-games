@@ -1038,8 +1038,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // 静态绘制初始画面
   game._draw();
 
-  document.getElementById('highScore').textContent = String(game.highScore);
-
   document.getElementById('btnStart').addEventListener('click', e => { e.stopPropagation(); game.start(); });
   document.getElementById('btnRestart').addEventListener('click', e => { e.stopPropagation(); game.start(); });
 
