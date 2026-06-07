@@ -39,22 +39,22 @@
         </div>
       </a>
 
-      <!-- 02 - 赛车游戏 -->
-      <div class="game-card locked">
-        <div class="card-badge badge-soon">即将推出</div>
+      <!-- 02 - 霓虹极速 -->
+      <a href="games/02-neon-racer/index.html" class="game-card completed">
+        <div class="card-badge badge-new">NEW</div>
         <div class="card-icon">
-          <span class="icon-placeholder">🏎️</span>
+          <canvas id="cardRacer02" width="100" height="100"></canvas>
         </div>
         <div class="card-info">
           <span class="card-number">#02</span>
-          <h3 class="card-title">极速赛车</h3>
-          <p class="card-desc">在高速公路上躲避车流，左右变道，挑战极速！</p>
+          <h3 class="card-title">霓虹极速</h3>
+          <p class="card-desc">3D夜景赛道！油门+刹车+方向盘，高速急转就打滑漂移！</p>
           <div class="card-tags">
-            <span class="tag tag-control">← → 方向键</span>
-            <span class="tag tag-difficulty">⭐⭐ 中等</span>
+            <span class="tag tag-control">↑↓←→ 全操作</span>
+            <span class="tag tag-difficulty">⭐⭐⭐ 困难</span>
           </div>
         </div>
-      </div>
+      </a>
 
       <!-- 03 - 雷电飞机 -->
       <div class="game-card locked">
@@ -271,6 +271,69 @@
       ctx.beginPath();
       ctx.arc(cx - 20, cy + 6, 3, 0, Math.PI * 2);
       ctx.fill();
+    })();
+
+    // ===== 绘制霓虹极速赛车图标 =====
+    (function() {
+      const canvas = document.getElementById('cardRacer02');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = 100, H = 100;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // 路面透视
+      const vy = 40;
+      ctx.fillStyle = '#2a2a3e';
+      ctx.beginPath();
+      ctx.moveTo(10, H); ctx.lineTo(35, vy); ctx.lineTo(65, vy); ctx.lineTo(90, H);
+      ctx.closePath(); ctx.fill();
+
+      // 车道虚线
+      ctx.setLineDash([6, 8]);
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(50, vy); ctx.lineTo(50, H);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 霓虹带
+      ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 8;
+      ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(15, H); ctx.lineTo(37, vy); ctx.stroke();
+      ctx.shadowColor = '#00ffff';
+      ctx.strokeStyle = '#00ffff';
+      ctx.beginPath(); ctx.moveTo(85, H); ctx.lineTo(63, vy); ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // 赛车
+      const cx = 50, cy = 62;
+      ctx.fillStyle = '#00ffcc';
+      ctx.beginPath();
+      ctx.roundRect(cx - 14, cy - 24, 28, 48, 6);
+      ctx.fill();
+      // 车窗
+      ctx.fillStyle = '#0a0a1a';
+      ctx.beginPath();
+      ctx.roundRect(cx - 8, cy - 22, 16, 16, 3);
+      ctx.fill();
+      // 尾灯
+      ctx.fillStyle = '#ff0044';
+      ctx.shadowColor = '#ff0044'; ctx.shadowBlur = 5;
+      ctx.fillRect(cx - 12, cy + 18, 8, 5);
+      ctx.fillRect(cx + 4, cy + 18, 8, 5);
+      ctx.shadowBlur = 0;
+
+      // 速度线
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        const lx = 20 + Math.random() * 60;
+        ctx.moveTo(lx, 75 + Math.random() * 20);
+        ctx.lineTo(lx, 80 + Math.random() * 15);
+        ctx.stroke();
+      }
     })();
 
     // ===== 背景泡泡动画 =====

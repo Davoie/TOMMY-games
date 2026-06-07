@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🏎️ 霓虹极速 - TOMMY 游戏厅</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-wrapper">
+    <!-- 画布 -->
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+    <!-- 覆盖层：开始 -->
+    <div class="overlay" id="overlayStart">
+      <div class="overlay-content">
+        <h2>🏎️ 霓虹极速</h2>
+        <p>深夜霓虹高速，躲避所有来车！</p>
+        <div class="control-hints">
+          <span class="hint"><kbd>↑</kbd> 油门</span>
+          <span class="hint"><kbd>↓</kbd> 刹车</span>
+          <span class="hint"><kbd>← →</kbd> 转向</span>
+          <span class="hint">📱 左右触屏</span>
+        </div>
+        <p class="hint-warn">⚠ 高速急转 = 打滑漂移</p>
+        <button class="btn-play" id="btnStart">发动引擎 🏁</button>
+        <a href="../../index.html" class="btn-hub">🏠 返回大厅</a>
+      </div>
+    </div>
+
+    <!-- 覆盖层：结束 -->
+    <div class="overlay hidden" id="overlayEnd">
+      <div class="overlay-content">
+        <h2>💥 撞毁了！</h2>
+        <div class="end-score">
+          <p>时速：<span class="final-speed" id="finalSpeed">0</span> km/h</p>
+          <p>得分：<span class="final-score" id="finalScore">0</span></p>
+          <p>最高分：<span class="final-high" id="finalHigh">0</span></p>
+          <p class="new-record hidden" id="newRecord">🎉 新纪录！</p>
+        </div>
+        <button class="btn-play" id="btnRestart">再来一局 🔄</button>
+        <a href="../../index.html" class="btn-hub">🏠 返回大厅</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
