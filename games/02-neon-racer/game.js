@@ -45,17 +45,14 @@ class Game {
   _bs(){const n=300;for(let i=0;i<=n;i++){const sy=this.HORIZON_Y+i*(this.H-this.HORIZON_Y)/n;const d=sy>this.HORIZON_Y?(this.H-this.HORIZON_Y)*this.FOCUS/(sy-this.HORIZON_Y)-this.FOCUS:999999;const sc=this.FOCUS/(d+this.FOCUS);this.strips.push({sy,d,sc});}this.FAR_D=this.strips[Math.floor(n*0.03)].d;}
   _proj(d){if(d<=0)return{sy:this.H,sc:1.2};const sc=this.FOCUS/(d+this.FOCUS);return{sy:this.HORIZON_Y+(this.H-this.HORIZON_Y)*sc,sc:Math.min(sc,1.25)};}
 
-  // 路面中心偏移 — 屏幕像素
+  // 统一偏移 — 路面+障碍物+装饰都用这一个函数
+  // player.x 负(左转) → 路面向右偏，视野中所有东西一致右移
+  // scale 越小(远) → 偏移越小 → 透视感正确
   _roadX(d){
-    const pan=this.player.x*0.25*this.W;
-    const curve=this.curve*d*d*0.00035;
-    return pan+curve;
-  }
-
-  // 路面中心偏移 — 世界坐标 (障碍物/装饰用)
-  _worldRoadX(d){
-    const shift=this.player.x*d*0.25;
-    return this.curve*d*d*0.00035-shift;
+    const sc=d>0?this.FOCUS/(d+this.FOCUS):1;
+    const playerShift=-this.player.x*0.25*this.W*sc;
+    const curveShift=this.curve*d*d*0.00035;
+    return playerShift+curveShift;
   }
 
   _is(){for(let l=0;l<3;l++)for(let i=0;i<40;i++)this.stars.push({x:Math.random()*this.W,y:Math.random()*this.HORIZON_Y,r:Math.random()*(l===0?1.2:l===1?1.8:2.5),tw:Math.random()*Math.PI*2,sp:0.2+l*0.3,ly:l,op:0.4+l*0.3});}
@@ -78,7 +75,7 @@ class Game {
   _uObst(){this.spawnTimer++;if(this.spawnTimer>=this.spawnInterval){this.spawnTimer=0;this._spawn();}const ws=this.speed*0.08;for(let i=this.obstacles.length-1;i>=0;i--){const o=this.obstacles[i];o.d-=ws;if(!o.scored&&o.d<0){o.scored=true;this.score+=10;}if(o.d<-30)this.obstacles.splice(i,1);}if(this.invincible>0)return;for(const o of this.obstacles){if(this._col(o)){this._hit();break;}}}
   _spawn(){const types=this.score<200?['car']:this.score<400?['car','truck']:['car','truck','racer'];const type=types[Math.floor(Math.random()*types.length)];const d=this.FAR_D+Math.random()*400;let lat=(Math.random()-0.5)*1.3;for(const o of this.obstacles){if(Math.abs(o.d-d)<250&&Math.abs(o.lat-lat)<0.2)lat=(Math.random()-0.5)*1.3;}this.obstacles.push({type,lat,d,scored:false,sp:type==='truck'?0.3:type==='racer'?2+Math.random()*2:Math.random()*1.5});}
   _col(o){if(o.d<this.NEAR_D||o.d>70)return false;const pj=this._proj(o.d);
-    const rx=this._worldRoadX(o.d);
+    const rx=this._roadX(o.d);
     const rw=this.ROAD_W*pj.sc*this.W;const ox=this.W/2+rx+o.lat*rw*0.78;
     const ow=(o.type==='truck'?38:o.type==='racer'?20:27)*pj.sc*1.1;const oh=(o.type==='truck'?58:o.type==='racer'?30:42)*pj.sc*1.1;
     const pw=36,ph=60;const px=this.W/2-pw/2;const py=this.H-ph+15;const pad=4;
@@ -140,13 +137,13 @@ class Game {
 
   _dDecor(ctx){
     const W=this.W;
-    for(const lp of this.lampposts){if(lp.d<=0||lp.d>this.FAR_D+400)continue;const pj=this._proj(lp.d);if(pj.sy<this.HORIZON_Y||pj.sy>this.H)continue;const rx=this._worldRoadX(lp.d);const rw=this.ROAD_W*pj.sc*W;const lx=W/2+rx+lp.side*rw*1.15;ctx.fillStyle='#334';ctx.fillRect(lx-2*pj.sc,pj.sy-65*pj.sc,3.5*pj.sc,65*pj.sc);ctx.fillStyle='#ffddaa';ctx.shadowColor='rgba(255,200,100,0.5)';ctx.shadowBlur=14*pj.sc;ctx.beginPath();ctx.arc(lx,pj.sy-65*pj.sc,6*pj.sc,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
-    for(const bb of this.billboards){if(bb.d<=0||bb.d>this.FAR_D+400)continue;const pj=this._proj(bb.d);if(pj.sy<this.HORIZON_Y||pj.sy>this.H)continue;const rx=this._worldRoadX(bb.d);const rw=this.ROAD_W*pj.sc*W;const bx=W/2+rx+bb.side*rw*1.12;const bh=22*pj.sc,bw=50*pj.sc;ctx.fillStyle='#1a1a30';ctx.fillRect(bx-bw/2,pj.sy-bh,bw,bh);ctx.fillStyle=['#ff00ff','#00ffff','#ffaa00'][Math.floor(Math.random()*3)];ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=7*pj.sc;ctx.fillRect(bx-bw*0.35,pj.sy-bh*0.6,bw*0.7,bh*0.3);ctx.shadowBlur=0;}
+    for(const lp of this.lampposts){if(lp.d<=0||lp.d>this.FAR_D+400)continue;const pj=this._proj(lp.d);if(pj.sy<this.HORIZON_Y||pj.sy>this.H)continue;const rx=this._roadX(lp.d);const rw=this.ROAD_W*pj.sc*W;const lx=W/2+rx+lp.side*rw*1.15;ctx.fillStyle='#334';ctx.fillRect(lx-2*pj.sc,pj.sy-65*pj.sc,3.5*pj.sc,65*pj.sc);ctx.fillStyle='#ffddaa';ctx.shadowColor='rgba(255,200,100,0.5)';ctx.shadowBlur=14*pj.sc;ctx.beginPath();ctx.arc(lx,pj.sy-65*pj.sc,6*pj.sc,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+    for(const bb of this.billboards){if(bb.d<=0||bb.d>this.FAR_D+400)continue;const pj=this._proj(bb.d);if(pj.sy<this.HORIZON_Y||pj.sy>this.H)continue;const rx=this._roadX(bb.d);const rw=this.ROAD_W*pj.sc*W;const bx=W/2+rx+bb.side*rw*1.12;const bh=22*pj.sc,bw=50*pj.sc;ctx.fillStyle='#1a1a30';ctx.fillRect(bx-bw/2,pj.sy-bh,bw,bh);ctx.fillStyle=['#ff00ff','#00ffff','#ffaa00'][Math.floor(Math.random()*3)];ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=7*pj.sc;ctx.fillRect(bx-bw*0.35,pj.sy-bh*0.6,bw*0.7,bh*0.3);ctx.shadowBlur=0;}
   }
 
   _dObst(ctx){
     const W=this.W;const sorted=[...this.obstacles].sort((a,b)=>b.d-a.d);
-    for(const o of sorted){if(o.d<=0||o.d>this.FAR_D+400)continue;const pj=this._proj(o.d);if(pj.sy<this.HORIZON_Y||pj.sy>this.H+20)continue;const rx=this._worldRoadX(o.d);const rw=this.ROAD_W*pj.sc*W;const ox=W/2+rx+o.lat*rw*0.78;const bw=(o.type==='truck'?38:o.type==='racer'?20:27)*pj.sc*1.1;const bh=(o.type==='truck'?58:o.type==='racer'?30:42)*pj.sc*1.1;ctx.fillStyle=o.type==='truck'?'#ff9933':o.type==='racer'?'#ff2244':'#ff6644';ctx.fillRect(ox-bw/2,pj.sy-bh,bw,bh);ctx.fillStyle='rgba(20,20,40,0.6)';ctx.fillRect(ox-bw*0.28,pj.sy-bh*0.95,bw*0.56,bh*0.32);ctx.fillStyle='#ffff88';ctx.shadowColor='#ffff88';ctx.shadowBlur=3*pj.sc;ctx.fillRect(ox-bw*0.32,pj.sy-bh-2*pj.sc,bw*0.15,3*pj.sc);ctx.fillRect(ox+bw*0.18,pj.sy-bh-2*pj.sc,bw*0.15,3*pj.sc);ctx.shadowBlur=0;if(o.type==='racer'){ctx.fillStyle='#f00';ctx.beginPath();ctx.moveTo(ox,pj.sy-bh-5*pj.sc);ctx.lineTo(ox-5*pj.sc,pj.sy-bh-13*pj.sc);ctx.lineTo(ox+5*pj.sc,pj.sy-bh-13*pj.sc);ctx.closePath();ctx.fill();}}
+    for(const o of sorted){if(o.d<=0||o.d>this.FAR_D+400)continue;const pj=this._proj(o.d);if(pj.sy<this.HORIZON_Y||pj.sy>this.H+20)continue;const rx=this._roadX(o.d);const rw=this.ROAD_W*pj.sc*W;const ox=W/2+rx+o.lat*rw*0.78;const bw=(o.type==='truck'?38:o.type==='racer'?20:27)*pj.sc*1.1;const bh=(o.type==='truck'?58:o.type==='racer'?30:42)*pj.sc*1.1;ctx.fillStyle=o.type==='truck'?'#ff9933':o.type==='racer'?'#ff2244':'#ff6644';ctx.fillRect(ox-bw/2,pj.sy-bh,bw,bh);ctx.fillStyle='rgba(20,20,40,0.6)';ctx.fillRect(ox-bw*0.28,pj.sy-bh*0.95,bw*0.56,bh*0.32);ctx.fillStyle='#ffff88';ctx.shadowColor='#ffff88';ctx.shadowBlur=3*pj.sc;ctx.fillRect(ox-bw*0.32,pj.sy-bh-2*pj.sc,bw*0.15,3*pj.sc);ctx.fillRect(ox+bw*0.18,pj.sy-bh-2*pj.sc,bw*0.15,3*pj.sc);ctx.shadowBlur=0;if(o.type==='racer'){ctx.fillStyle='#f00';ctx.beginPath();ctx.moveTo(ox,pj.sy-bh-5*pj.sc);ctx.lineTo(ox-5*pj.sc,pj.sy-bh-13*pj.sc);ctx.lineTo(ox+5*pj.sc,pj.sy-bh-13*pj.sc);ctx.closePath();ctx.fill();}}
   }
 
   // ===== 内饰: 精简座舱,方向盘大+清晰转动 =====
